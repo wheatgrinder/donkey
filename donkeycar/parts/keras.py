@@ -199,7 +199,8 @@ def default_cropped_categorical():
     model.compile(optimizer='adam',
                   loss={'angle_out': 'categorical_crossentropy', 
                         'throttle_out': 'mean_absolute_error'},
-                  loss_weights={'angle_out': 0.9, 'throttle_out': .001})
+                  loss_weights={'angle_out': 0.9, 'throttle_out': .2})
+                  #loss_weights={'angle_out': 0.9, 'throttle_out': .001})
 
     return model
 
