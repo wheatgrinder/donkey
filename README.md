@@ -2,6 +2,9 @@
 
 ![build status](https://travis-ci.org/wroscoe/donkey.svg?branch=master)
 
+This is wheatgrinders fork of donkeycar.  My intent is to build on donkeycar and make a sort of donkey pet.   
+
+
 Donkeycar is minimalist and modular self driving library for Python. It is 
 developed for hobbiests and students with a focus on allowing fast experimentation and easy 
 community contributions.  
