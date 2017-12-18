@@ -84,9 +84,6 @@ class KerasCroppedCategorical(KerasPilot):
 
         #print('throttle:', throttle)
         return angle_unbinned, throttle[0][0]
-        
-    
-
 
 class KerasCategorical(KerasPilot):
     def __init__(self, model=None, *args, **kwargs):
