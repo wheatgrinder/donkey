@@ -7,6 +7,17 @@ class ImgGreyscale():
         img_arr = cv2.cvtColor(img_arr, cv2.COLOR_RGB2GRAY)
         return img_arr
 
+class ImgResize():
+    def __init__(self, dimx=120,dimy=160):
+        self.dimx=dimx
+        self.dimy=dimy
+        self.img_arr = np.zeros((1,1,3), np.uint8)
+        
+        
+    def run(self, img_arr):
+        resized = cv2.resize(img_arr,(160,120))
+        return resized
+
 class ImgDrawLine():
 
     def __init__(self, start=(0,40),end=(160,40),color=(255,0,0), width=5):
