@@ -28,10 +28,11 @@ Basic instructions to install NCS
 
 once the NCS is installed an you have those results showing its working
 Get the trained graph files from the github https://github.com/wheatgrinder/donkeycar_cars/tree/master/d2/models/ncs_data
-you only need the graph files.  googlenet_graph_file and yolo_graph_file
-..... or setup the NCS dev environment on your pc and create the graph.. 
+you only need the graph file if your running the yolo, for googlenet you will also need the synset_words.txt and ilsvrc_2012_mean.npy files
 
-Place the graph files in your cars "models" directory
+..... or setup the NCS dev environment on your pc and create the graph etc..  
+
+Place the files in your cars "models" directory
 Add the ncs part to your cars manage.py file...
 
 
@@ -43,7 +44,7 @@ Add the ncs part to your cars manage.py file...
         ncs_ty = tinyyolo(basedir=cfg.MODELS_PATH)
         V.add(ncs_ty, inputs=['cam/image_array'],outputs=['cam/image_array'],threaded=True)
 
-This will affect the images saved the tub which will probably ruin your training.. so yeah, not really useful yet.  
+This will affect the images saved in the tub which will probably ruin your training.. so yeah, not really useful yet.  
 
 
 
@@ -54,7 +55,7 @@ the googlenet implementation outputs data and does not affect the image. you can
         V.add(ncs_gn, inputs=['cam/image_array'],outputs=['classificaiton'],threaded=True)
 
 
-
+most this code is from the donkey project and the intel movidus ncazoo below.. there is some license stuff.. read it
 '''
 
 
