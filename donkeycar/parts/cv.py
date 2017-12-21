@@ -71,8 +71,8 @@ class ImgPutText():
         self.size = size
         
         
-    def run(self, img_arr, classificaiton):
-        img_arr = cv2.putText(img_arr,classificaiton, (1,15), cv2.FONT_HERSHEY_SIMPLEX,self.size, self.color,self.width, cv2.LINE_AA)
+    def run(self, img_arr, displaytext):
+        img_arr = cv2.putText(img_arr, str(displaytext), (1,15), cv2.FONT_HERSHEY_SIMPLEX,self.size, self.color,self.width, cv2.LINE_AA)
         
         return img_arr
 

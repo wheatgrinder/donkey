@@ -1,4 +1,62 @@
 #! /usr/bin/env python3
+'''
+To use this part you will need to have a pretrained model, commonaly called a graph file in NCS speak
+Training and generating graph files is beyond the scope of this little bit of help
+
+You will also need th movidus neural compute stick libraries installed on your PI... call this an API mode install (very light weight)
+Basic instructions to install NCS
+
+                donkey_v22.img
+                Plug in ethernet cable
+                connected ssh via ethernet
+                user pi
+                pwd asdfasdf
+
+                sudo apt-get install libusb-1.0-0-dev
+                mkdir workspace
+                cd workspace/
+                
+                git clone https://github.com/movidius/ncsdk
+                
+                cd ncsdk/api/src/
+                sudo make install
+
+                cd ~/workspace/ncsdk/examples/apps/hello_ncs_py
+                python3 hello_ncs.py;
+                Hello NCS! Device opened normally.  
+                Goodbye NCS! Device closed normally.
+
+once the NCS is installed an you have those results showing its working
+Get the trained graph files from the github https://github.com/wheatgrinder/donkeycar_cars/tree/master/d2/models/ncs_data
+you only need the graph files.  googlenet_graph_file and yolo_graph_file
+..... or setup the NCS dev environment on your pc and create the graph.. 
+
+Place the graph files in your cars "models" directory
+Add the ncs part to your cars manage.py file...
+
+
+        #NCS PARTS
+        from donkeycar.parts.ncs import googlenet
+        from donkeycar.parts.ncs import tinyyolo
+
+
+        ncs_ty = tinyyolo(basedir=cfg.MODELS_PATH)
+        V.add(ncs_ty, inputs=['cam/image_array'],outputs=['cam/image_array'],threaded=True)
+
+This will affect the images saved the tub which will probably ruin your training.. so yeah, not really useful yet.  
+
+
+
+the googlenet implementation outputs data and does not affect the image. you can do something useful withi the outputs  
+
+        ncs_gn = googlenet()
+        ncs_gn.base_dir = '~/cars/d2/models/ncs_data/'
+        V.add(ncs_gn, inputs=['cam/image_array'],outputs=['classificaiton'],threaded=True)
+
+
+
+'''
+
 
 import sys
 import numpy as np
@@ -9,13 +67,13 @@ import os
 import sys
 
 class googlenet():
-        def __init__(self, base_dir = '/home/pi/cars/d2/models/ncs_data/', NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224):
+        def __init__(self, basedir, NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224):
                 
                 from mvnc import mvncapi as mvnc
                 # initialize the ncs and network params
                 self.NETWORK_IMAGE_WIDTH = NETWORK_IMAGE_WIDTH
                 self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
-                self.BASE_DIR = base_dir
+                self.BASE_DIR = basedir+'/'
 
                 self.on = True
                 
@@ -23,7 +81,7 @@ class googlenet():
                 # ***************************************************************
                 # get labels
                 # ***************************************************************
-                labels_file= self.BASE_DIR+'ilsvrc12/synset_words.txt'
+                labels_file= self.BASE_DIR+'synset_words.txt'
                 self.labels=np.loadtxt(labels_file,str,delimiter='\t')
 
                 # ***************************************************************
@@ -54,7 +112,7 @@ class googlenet():
                         blob = f.read()
                         self.graph = device.AllocateGraph(blob)
 
-                        self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc12/ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
+                        self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
 
                 print("NCS Device Graph is loaded, ready to classify")
                 time.sleep(2)
@@ -154,13 +212,14 @@ class googlenet():
 
 
 class tinyyolo():
-        def __init__(self, base_dir = '/home/pi/cars/d2/models/ncs_data/', NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448):
+        
+        def __init__(self, basedir , NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448):
                 
                 from mvnc import mvncapi as mvnc
                 # initialize the ncs and network params
                 self.NETWORK_IMAGE_WIDTH = NETWORK_IMAGE_WIDTH
                 self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
-                self.BASE_DIR = base_dir
+                self.BASE_DIR = basedir+'/'
 
                 self.on = True
                 
@@ -168,8 +227,8 @@ class tinyyolo():
                 # ***************************************************************
                 # get labels
                 # ***************************************************************
-                labels_file= self.BASE_DIR+'ilsvrc12/synset_words.txt'
-                self.labels=np.loadtxt(labels_file,str,delimiter='\t')
+                #labels_file= self.BASE_DIR+'ilsvrc12/synset_words.txt'
+                #self.labels=np.loadtxt(labels_file,str,delimiter='\t')
 
                 # ***************************************************************
                 # configure the NCS
