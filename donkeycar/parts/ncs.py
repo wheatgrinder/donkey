@@ -65,7 +65,7 @@ import cv2
 import time
 import csv
 import os
-import sys
+
 
 class googlenet():
         def __init__(self, basedir, NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224):
@@ -116,6 +116,9 @@ class googlenet():
                         self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
 
                 print("NCS Device Graph is loaded, ready to classify")
+
+
+
                 time.sleep(2)
                 self.out_data='none'
                 #self.img_arr= (cv2.Mat image(320, 240, CV_8UC3, Scalar(0,0,0)))
@@ -214,16 +217,18 @@ class googlenet():
 
 class tinyyolo():
         
-        def __init__(self, basedir , NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448):
+        def __init__(self, basedir , NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448, draw_on_img=True, probability_threshold = 0.07):
                 
                 from mvnc import mvncapi as mvnc
                 # initialize the ncs and network params
                 self.NETWORK_IMAGE_WIDTH = NETWORK_IMAGE_WIDTH
                 self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
                 self.BASE_DIR = basedir+'/'
+                self.draw_on_img = draw_on_img
 
                 self.on = True
-                
+                # only report ojbects with probabilities greater than this
+                self.probability_threshold = probability_threshold
 
                 # ***************************************************************
                 # get labels
@@ -268,6 +273,14 @@ class tinyyolo():
 
                         #self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc12/ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
 
+                                # the 20 classes this network was trained on
+                self.network_classifications = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
+                                        "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
+                                        "person", "pottedplant", "sheep", "sofa", "train","tvmonitor"]
+
+
+
+
                 print("NCS Device Graph is loaded, ready to classify")
                 time.sleep(2)
                 self.out_data='none'
@@ -279,13 +292,13 @@ class tinyyolo():
 
         def run_threaded(self,img_arr):
                 self.img_arr = img_arr
-                return self.out_img_arr
+                return self.out_img_arr,self.out_filtered_objs
 
         def filter_objects(self,inference_result, input_image_width, input_image_height):
                 
                 # the raw number of floats returned from the inference (GetResult())
                 num_inference_results = len(inference_result)
-
+                '''
                 # the 20 classes this network was trained on
                 network_classifications = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
                                         "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
@@ -293,8 +306,9 @@ class tinyyolo():
 
                 # only keep boxes with probabilities greater than this
                 probability_threshold = 0.07
+                '''
 
-                num_classifications = len(network_classifications) # should be 20
+                num_classifications = len(self.network_classifications) # should be 20
                 grid_size = 7 # the image is a 7x7 grid.  Each box in the grid is 64x64 pixels
                 boxes_per_grid_cell = 2 # the number of boxes returned for each grid cell
 
@@ -323,7 +337,7 @@ class tinyyolo():
                                 all_probabilities[:,:,box_index,class_index] = np.multiply(classification_probabilities[:,:,class_index],box_prob_scale_factor[:,:,box_index])
 
 
-                probability_threshold_mask = np.array(all_probabilities>=probability_threshold, dtype='bool')
+                probability_threshold_mask = np.array(all_probabilities>=self.probability_threshold, dtype='bool')
                 box_threshold_mask = np.nonzero(probability_threshold_mask)
                 boxes_above_threshold = all_boxes[box_threshold_mask[0],box_threshold_mask[1],box_threshold_mask[2]]
                 classifications_for_boxes_above = np.argmax(all_probabilities,axis=3)[box_threshold_mask[0],box_threshold_mask[1],box_threshold_mask[2]]
@@ -347,7 +361,7 @@ class tinyyolo():
 
                 classes_boxes_and_probs = []
                 for i in range(len(boxes_above_threshold)):
-                        classes_boxes_and_probs.append([network_classifications[classifications_for_boxes_above[i]],boxes_above_threshold[i][0],boxes_above_threshold[i][1],boxes_above_threshold[i][2],boxes_above_threshold[i][3],probabilities_above_threshold[i]])
+                        classes_boxes_and_probs.append([self.network_classifications[classifications_for_boxes_above[i]],boxes_above_threshold[i][0],boxes_above_threshold[i][1],boxes_above_threshold[i][2],boxes_above_threshold[i][3],probabilities_above_threshold[i]])
 
                 return classes_boxes_and_probs
 
@@ -451,7 +465,7 @@ class tinyyolo():
                 #    float value that is the probability for the network classification.
                 # source_image_width is the width of the source_image
                 # source image_height is the height of the source image
-        def display_objects_in_gui(self,source_image, filtered_objects):
+        def display_objects_in_gui(self,source_image, filtered_objects, elapsed_time):
                         # copy image so we can draw on it.
                 display_image = source_image.copy()
                                 
@@ -461,6 +475,9 @@ class tinyyolo():
                 # loop through each box and draw it on the image along with a classification label
                 #print('Found this many objects in the image: ' + str(len(filtered_objects)))
                 for obj_index in range(len(filtered_objects)):
+                        
+                        outTime = "{0:.0f}ms".format (elapsed_time*1000)
+                        
                         thing =  filtered_objects[obj_index][0]
                         center_x = int(filtered_objects[obj_index][1])
                         center_y = int(filtered_objects[obj_index][2])
@@ -486,6 +503,7 @@ class tinyyolo():
                         label_text_color = (255, 255, 255)   # white text
                         cv2.rectangle(display_image,(box_left, box_top-20),(box_right,box_top), label_background_color, -1)
                         cv2.putText(display_image,filtered_objects[obj_index][0] + ' : %.2f' % filtered_objects[obj_index][5], (box_left+5,box_top-7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, label_text_color, 1)
+                        cv2.putText(display_image, outTime, (1,15), cv2.FONT_HERSHEY_SIMPLEX,0.4, (255,255,255) ,1, cv2.LINE_AA)
                         #max 5 objects tracked
                         if obj_index >= 5:
                                 break
@@ -512,6 +530,8 @@ class tinyyolo():
 
         def update(self):
                 while self.on:
+                        t = time.time() 
+                        
                         # Assume running in examples/caffe/TinyYolo and graph file is in current directory.
                         #input_image_file= '/home/pi/cars/d2/models/ncs_data/images/dog.jpg'
                         input_image = self.img_arr
@@ -538,12 +558,17 @@ class tinyyolo():
                         # Load tensor and get result.  This executes the inference on the NCS
                         self.graph.LoadTensor(input_image.astype(np.float16), 'user object')
                         output, userobj = self.graph.GetResult()
-
+                        elapsed_time = time.time() - t
                         # filter out all the objects/boxes that don't meet thresholds
                         filtered_objs = self.filter_objects(output.astype(np.float32), input_image.shape[1], input_image.shape[0]) # fc27 instead of fc12 for yolo_small
 
                         #print('found...' + str(len(filtered_objs)))
-                        self.out_img_arr = self.display_objects_in_gui(display_image, filtered_objs)
+                        if self.draw_on_img:
+                                self.out_img_arr = self.display_objects_in_gui(display_image, filtered_objs,elapsed_time)
+                        else:
+                                self.out_img_arr = self.img_arr
+
+                        self.out_filtered_objs = filtered_objs
                         #return self.display_objects_in_gui(self.img_arr, filtered_objs)
                         #self.out_img_arr = display_image
 

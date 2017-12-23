@@ -40,18 +40,22 @@ import time
 import os
 
 class driveLoopTime():
-    def __init__(self,timein =  time.time()):
+    def __init__(self,timein =  time.time(),console=False):
         self.timein = timein
+        self.console = console
+        self.outtime = 0
 
     def run(self,timein):
         self.timein = timein
         returntime = time.time()
         
         if self.timein:
-            elapsed_time = time.time() - self.timein
-            outtime = "{0:.4f} ms".format (elapsed_time * 1000)
-            print('time in drive loop: ' + outtime) 
-        return returntime
+            self.elapsed_time = time.time() - self.timein
+            self.outtime = "{0:.4f} ms".format (self.elapsed_time * 1000)
+            if self.console:
+                print('time in drive loop: ' + self.outtime) 
+
+        return returntime, self.outtime
 
 class coreTemp():
     #def __init__(self)
