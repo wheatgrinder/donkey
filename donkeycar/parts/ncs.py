@@ -41,14 +41,14 @@ Add the ncs part to your cars manage.py file...
         from donkeycar.parts.ncs import tinyyolo
 
 
-        ncs_ty = tinyyolo(basedir=cfg.MODELS_PATH)
-        V.add(ncs_ty, inputs=['cam/image_array'],outputs=['cam/image_array'],threaded=True)
+    ncs_ty = tinyyolo(basedir = cfg.MODELS_PATH, draw_on_img = True, probability_threshold = 0.1)
+    V.add(ncs_ty, inputs=['cam/image_array'],outputs=['ncs/image_array','ncs/found_objs'],threaded=True)
 
-This will affect the images saved in the tub which will probably ruin your training.. so yeah, not really useful yet.  
+You can have the data without affecting the image by setting "draw_on_img = False.  
+You can use the data in another part and do soemthing with it see my "goveneor.py" part... 
 
 
-
-the googlenet implementation outputs data and does not affect the image. you can do something useful withi the outputs  
+the googlenet implementation outputs data and does not affect the image. you can do something useful withi the 'classification' output  
 
         ncs_gn = googlenet()
         ncs_gn.base_dir = '~/cars/d2/models/ncs_data/'
@@ -68,15 +68,17 @@ import os
 
 
 class googlenet():
-        def __init__(self, basedir, NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224):
+        def __init__(self, basedir, NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224, draw_on_img=True, probability_threshold = 0.2, debug=False):
                 
                 from mvnc import mvncapi as mvnc
                 # initialize the ncs and network params
                 self.NETWORK_IMAGE_WIDTH = NETWORK_IMAGE_WIDTH
                 self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
                 self.BASE_DIR = basedir+'/'
-
+                self.probability_threshold = probability_threshold
                 self.on = True
+                self.draw_on_img = draw_on_img
+                self.debug = debug
                 
 
                 # ***************************************************************
@@ -121,15 +123,18 @@ class googlenet():
 
                 time.sleep(2)
                 self.out_data='none'
-                #self.img_arr= (cv2.Mat image(320, 240, CV_8UC3, Scalar(0,0,0)))
+                 # we need an image to start or 
                 self.img_arr = np.zeros((1,1,3), np.uint8)
+                self.out_img_arr = np.zeros((1,1,3), np.uint8)
                 self.hldCnt = 0;        
 
                         
         def update(self):
                         
                 while self.on:
-                                
+
+                        #self.out_img_arr = self.img_arr
+
                         t = time.time()        
                         
                         # do complicated stuff here..
@@ -140,7 +145,12 @@ class googlenet():
 
                         #img = cv2.imread(EXAMPLES_BASE_DIR+'data/images/nps_electric_guitar.png')
                         dim = (self.NETWORK_IMAGE_WIDTH, self.NETWORK_IMAGE_HEIGHT)
-                        img = self.img_arr
+                        if self.debug:
+                                img = cv2.imread(self.BASE_DIR+'debug.jpg')
+                        else:
+                                img = self.out_img_arr 
+                        
+                        
                         img=cv2.resize(img,dim)
                         img = img.astype(np.float32)
                         img[:,:,0] = (img[:,:,0] - self.ilsvrc_mean[0])
@@ -167,7 +177,7 @@ class googlenet():
                         #self.out_data='';
 
                         #print('\n------- predictions --------')
-                        #for i in range(0,1):
+                        #for i in range(0,6):
                         #        print ('prediction ' + str(i) + ' (probability ' + str(output[order[i]]) + ') is ' + self.labels[order[i]] + '  label index is: ' + str(order[i]) )
                         
                         # pares the labels.. only want the first real string..
@@ -175,28 +185,43 @@ class googlenet():
                         # n01644900 tailed frog, bell toad, ribbed toad, tailed toad, Ascaphus trui
                         # split into comma list...
                         elapsed_time = time.time() - t
-                        if output[order[0]] > 0.1:
+                        if output[order[0]] >= self.probability_threshold:
                                 outLable = self.labels[order[0]].split(",") 
                                 outLable = outLable[0].split(" ",1)  #split at first space
                                 outConfidence = "{0:.0f}%".format( output[order[0]] * 100)
                                 outTime = "{0:.0f}ms".format (elapsed_time*1000)
                                 
-                                self.out_data = outConfidence +' : '+ outLable[1] + " : " + outTime
-                                
+                                #self.out_data = outConfidence +' : '+ outLable[1] + " : " + outTime
+                                self.out_data = (outConfidence, outLable[1], outTime)
+                                #self.out_data = order
                         else:
-                                self.out_data = ''        
+                                self.out_data = ('','',outTime)        
 
                         #print(self.out_data)
+                        if self.draw_on_img:
+                                self.out_img_arr = self.display_in_gui(self.img_arr, self.out_data,elapsed_time)
+                        else:
+                                self.out_img_arr = self.img_arr
                         
 
                         #return self.out_data
                         # simulate a long time..         
                         #time.sleep(1)
-      
-        
+
+        def display_in_gui(self,source_image, data_in, elapsed_time):
+                display_image = source_image.copy()
+                #source_image_width = source_image.shape[1]
+                #source_image_height = source_image.shape[0]        
+                display_image = cv2.putText(source_image,str(data_in[0]) + ' : ' + str(data_in[1]) +' : ' + str(data_in[2]), (1,15), cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255),1, cv2.LINE_AA)
+                #display_image = cv2.putText(self.out_img_arr,'Object: '+str(data_in[1]), (1,35), cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255),1, cv2.LINE_AA)
+                #print(data_in[0])
+                #self.out_img_arr = display_image
+                return display_image
+
+
         def run_threaded(self,img_arr):
                 self.img_arr = img_arr
-                return self.out_data
+                return self.out_img_arr, self.out_data
                         
 
 
@@ -214,10 +239,181 @@ class googlenet():
                 #self.camera.close()
 
 
+class inception():
+        def __init__(self, basedir, NETWORK_IMAGE_WIDTH = 224, NETWORK_IMAGE_HEIGHT = 224, draw_on_img=True, probability_threshold = 0.2,debug=False):
+                
+                from mvnc import mvncapi as mvnc
+                # initialize the ncs and network params
+                self.NETWORK_IMAGE_WIDTH = NETWORK_IMAGE_WIDTH
+                self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
+                self.BASE_DIR = basedir+'/'
+                self.probability_threshold = probability_threshold
+                self.on = True
+                self.draw_on_img = draw_on_img
+                self.debug = debug
+                                
+                # ***************************************************************
+                # get labels
+                # ***************************************************************
+                labels_file= self.BASE_DIR+'synset_words.txt'
+                self.labels=np.loadtxt(labels_file,str,delimiter='\t')
+
+                # ***************************************************************
+                # configure the NCS
+                # ***************************************************************
+                mvnc.SetGlobalOption(mvnc.GlobalOption.LOG_LEVEL, 2)
+                
+                print('Starting Neural Compute Stick')
+
+                # Set logging level and initialize/open the first NCS we find
+                mvnc.SetGlobalOption(mvnc.GlobalOption.LOG_LEVEL, 0)
+                devices = mvnc.EnumerateDevices()
+                if len(devices) == 0:
+                        print('No devices found')
+                        return 1
+                device = mvnc.Device(devices[0])
+                try:
+                        device.OpenDevice()
+                except:
+                        print("Error - could not open the NCS device")
+
+                print("NCS Device Opened normally. - warming NCS")
+
+                network_blob=self.BASE_DIR+'inception_v3_graph'
+
+                #Load blob
+                with open(network_blob, mode='rb') as f:
+                        blob = f.read()
+                        self.graph = device.AllocateGraph(blob)
+
+                        self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
+
+                print("NCS Device Graph is loaded, ready to classify")
+
+
+
+                time.sleep(2)
+                self.out_data='none'
+                 # we need an image to start or 
+                self.img_arr = np.zeros((1,1,3), np.uint8)
+                self.out_img_arr = np.zeros((1,1,3), np.uint8)
+                self.hldCnt = 0;        
+
+                        
+        def update(self):
+                        
+                while self.on:
+
+                        #self.out_img_arr = self.img_arr
+
+                        t = time.time()        
+                        
+                        # do complicated stuff here..
+                        # ***************************************************************
+                        # Load the image
+                        # ***************************************************************
+                        #self.img_arr='cam/image_array'
+
+                        #img = cv2.imread(EXAMPLES_BASE_DIR+'data/images/nps_electric_guitar.png')
+                        dim = (self.NETWORK_IMAGE_WIDTH, self.NETWORK_IMAGE_HEIGHT)
+                        #img = self.out_img_arr
+                        if self.debug:
+                                img = self.BASE_DIR+'debug.jpg'
+                        else:
+                                img = self.img_arr
+                        img=cv2.resize(img,dim)
+                        img = img.astype(np.float32)
+                        img[:,:,0] = (img[:,:,0] - self.ilsvrc_mean[0])
+                        img[:,:,1] = (img[:,:,1] - self.ilsvrc_mean[1])
+                        img[:,:,2] = (img[:,:,2] - self.ilsvrc_mean[2])
+
+
+                        # ***************************************************************
+                        # Send the image to the NCS
+                        # ***************************************************************
+                        self.graph.LoadTensor(img.astype(np.float16), 'user object')
+
+
+                        # ***************************************************************
+                        # Get the result from the NCS
+                        # ***************************************************************
+                        output, userobj = self.graph.GetResult()
+
+                        # ***************************************************************
+                        # Print the results of the inference form the NCS
+                        # ***************************************************************
+                        
+                        order = output.argsort()[::-1][:6]
+                        #self.out_data='';
+
+                        #print('\n------- predictions --------')
+                        #for i in range(0,6):
+                        #        print ('prediction ' + str(i) + ' (probability ' + str(output[order[i]]) + ') is ' + self.labels[order[i]] + '  label index is: ' + str(order[i]) )
+                        
+                        # pares the labels.. only want the first real string..
+                        # typical line looks like this.. I want jut "tailed frog"
+                        # n01644900 tailed frog, bell toad, ribbed toad, tailed toad, Ascaphus trui
+                        # split into comma list...
+                        elapsed_time = time.time() - t
+                        if output[order[0]] >= self.probability_threshold:
+                                outLable = self.labels[order[0]].split(",") 
+                                outLable = outLable[0].split(" ",1)  #split at first space
+                                outConfidence = "{0:.0f}%".format( output[order[0]] * 100)
+                                outTime = "{0:.0f}ms".format (elapsed_time*1000)
+                                
+                                #self.out_data = outConfidence +' : '+ outLable[1] + " : " + outTime
+                                self.out_data = (outConfidence, outLable[1], outTime)
+                                #self.out_data = order
+                        else:
+                                self.out_data = ('','',outTime)        
+
+                        #print(self.out_data)
+                        if self.draw_on_img:
+                                self.out_img_arr = self.display_in_gui(self.img_arr, self.out_data,elapsed_time)
+                        else:
+                                self.out_img_arr = self.img_arr
+                        
+
+                        #return self.out_data
+                        # simulate a long time..         
+                        #time.sleep(1)
+
+        def display_in_gui(self,source_image, data_in, elapsed_time):
+                display_image = source_image.copy()
+                #source_image_width = source_image.shape[1]
+                #source_image_height = source_image.shape[0]        
+                display_image = cv2.putText(source_image,str(data_in[0]) + ' : ' + str(data_in[1]) +' : ' + str(data_in[2]), (1,15), cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255),1, cv2.LINE_AA)
+                #display_image = cv2.putText(self.out_img_arr,'Object: '+str(data_in[1]), (1,35), cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255),1, cv2.LINE_AA)
+                #print(data_in[0])
+                #self.out_img_arr = display_image
+                return display_image
+
+
+        def run_threaded(self,img_arr):
+                #if debug:
+                self.img_arr = img_arr
+
+                return self.out_img_arr, self.out_data
+                        
+
+
+        def shutdown(self):
+                # indicate that the thread should be stopped
+                self.on = False
+                print('stoping ncs')
+                
+                #Clean up
+                graph.DeallocateGraph()
+                device.CloseDevice()
+                time.sleep(.5)
+                #self.stream.close()
+                #self.rawCapture.close()
+                #self.camera.close()
+
 
 class tinyyolo():
         
-        def __init__(self, basedir , NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448, draw_on_img=True, probability_threshold = 0.07):
+        def __init__(self, basedir , NETWORK_IMAGE_WIDTH = 448, NETWORK_IMAGE_HEIGHT = 448, draw_on_img=True, probability_threshold = 0.07,debug=False):
                 
                 from mvnc import mvncapi as mvnc
                 # initialize the ncs and network params
@@ -225,6 +421,7 @@ class tinyyolo():
                 self.NETWORK_IMAGE_HEIGHT = NETWORK_IMAGE_HEIGHT
                 self.BASE_DIR = basedir+'/'
                 self.draw_on_img = draw_on_img
+                self.debug = debug
 
                 self.on = True
                 # only report ojbects with probabilities greater than this
@@ -274,9 +471,13 @@ class tinyyolo():
                         #self.ilsvrc_mean = np.load(self.BASE_DIR+'ilsvrc12/ilsvrc_2012_mean.npy').mean(1).mean(1) #loading the mean file
 
                                 # the 20 classes this network was trained on
+                
                 self.network_classifications = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
                                         "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
                                         "person", "pottedplant", "sheep", "sofa", "train","tvmonitor"]
+                
+                
+                #self.network_classifications = ["car", "cat", "dog", "person" ]
 
 
 
@@ -484,6 +685,9 @@ class tinyyolo():
                         half_width = int(filtered_objects[obj_index][3])//2
                         half_height = int(filtered_objects[obj_index][4])//2
 
+                        #only display what Im looking for.. 
+                        #
+                        #if thing == 'dog':         
                         # calculate box (left, top) and (right, bottom) coordinates
                         box_left = max(center_x - half_width, 0)
                         box_top = max(center_y - half_height, 0)
@@ -492,7 +696,7 @@ class tinyyolo():
 
                         #print('box at index ' + str(obj_index) + ' is ' + thing + ' left: ' + str(box_left) + ', top: ' + str(box_top) + ', right: ' + str(box_right) + ', bottom: ' + str(box_bottom))  
                         
-                               
+                        
                         #draw the rectangle on the image.  This is hopefully around the object
                         box_color = (0, 255, 0)  # green box
                         box_thickness = 2
@@ -505,8 +709,8 @@ class tinyyolo():
                         cv2.putText(display_image,filtered_objects[obj_index][0] + ' : %.2f' % filtered_objects[obj_index][5], (box_left+5,box_top-7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, label_text_color, 1)
                         cv2.putText(display_image, outTime, (1,15), cv2.FONT_HERSHEY_SIMPLEX,0.4, (255,255,255) ,1, cv2.LINE_AA)
                         #max 5 objects tracked
-                        if obj_index >= 5:
-                                break
+                        #if obj_index >= 5:
+                        #        break
 
                 return display_image
                 #return source_image
@@ -534,8 +738,13 @@ class tinyyolo():
                         
                         # Assume running in examples/caffe/TinyYolo and graph file is in current directory.
                         #input_image_file= '/home/pi/cars/d2/models/ncs_data/images/dog.jpg'
-                        input_image = self.img_arr
+                        if self.debug:
+                                input_image = cv2.imread(self.BASE_DIR+'debug.jpg')
+                        else:
+                                input_image = self.increase_brightness(self.img_arr,50)
                         
+                        
+
                         #input_image_file= './dog.jpg'
                         #tiny_yolo_graph_file= '/home/pi/cars/d2/models/ncs_data/tiny_yolo_graph'
                         
@@ -574,6 +783,17 @@ class tinyyolo():
 
                         #return 
                         
+        def increase_brightness(self,img, value=30):
+                hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(hsv)
+
+                lim = 255 - value
+                v[v > lim] = 255
+                v[v <= lim] += value
+
+                final_hsv = cv2.merge((h, s, v))
+                img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+                return img
 
  
         def mainXXX():

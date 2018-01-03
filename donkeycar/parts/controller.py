@@ -9,7 +9,7 @@ from threading import Thread
 from donkeycar.parts.web_controller.web import LocalWebController
 
 class Joystick():
-    '''
+    ''' 
     An interface to a physical joystick available at /dev/input
     '''
     def __init__(self, dev_fn='/dev/input/js0'):

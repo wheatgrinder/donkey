@@ -11,7 +11,7 @@ class ImgResize():
     def __init__(self, dimx=120,dimy=160):
         self.dimx=dimx
         self.dimy=dimy
-        self.img_arr = np.zeros((1,1,3), np.uint8)
+        self.img_arr = np.zeros((dimx,dimy,3), np.uint8)
         
         
     def run(self, img_arr):
