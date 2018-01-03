@@ -66,7 +66,12 @@ class coreTemp():
         return
 
 class throttled():
-    def run(self):
-        throttled_status = os.popen('vcgencmd get_throttled').readline()
-        print(str(throttled_status.rstrip()))
-        return
+    def update(self):
+        while True:
+            self.throttled_status = os.popen('vcgencmd get_throttled').readline()
+            self.throttled_status = str(self.throttled_status.rstrip())
+            time.sleep(10)
+            #print(str(throttled_status.rstrip()))
+        
+    def run_threaded(self):
+        return self.throttled_status
