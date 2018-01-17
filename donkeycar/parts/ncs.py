@@ -741,7 +741,8 @@ class tinyyolo():
                         if self.debug:
                                 input_image = cv2.imread(self.BASE_DIR+'debug.jpg')
                         else:
-                                input_image = self.increase_brightness(self.img_arr,50)
+                                #input_image = self.increase_brightness(self.img_arr,50)
+                                input_image = self.img_arr
                         
                         
 

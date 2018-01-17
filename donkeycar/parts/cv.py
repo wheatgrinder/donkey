@@ -25,12 +25,30 @@ class ImgDrawLine():
         self.end = end
         self.color = color
         self.width = width
-        
+         
         
     def run(self, img_arr):
         #img_arr = cv2.line(img_arr,(0,40),(160,40),(255,0,0),5)
         img_arr = cv2.line(img_arr,self.start, self.end,self.color,self.width,cv2.LINE_AA)
         return img_arr
+    
+class ImgBoostBright():
+        
+    def __init__(self, value=30):
+        self.value = value
+
+    def run(self, img_arr):
+        hsv = cv2.cvtColor(img_arr, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+
+        lim = 255 - self.value
+        v[v > lim] = 255
+        v[v <= lim] += self.value
+
+        final_hsv = cv2.merge((h, s, v))
+        img_arr = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+        return img_arr
+ 
 
 class ImgDrawArrow():
 
