@@ -298,7 +298,7 @@ class JoystickController(object):
         
             if axis == self.steering_axis:
                 self.angle = self.steering_scale * axis_val
-                print("angle", self.angle)
+                #print("angle", self.angle)
             
             if axis == 'rightTrig2':
                 self.forward = axis_val
@@ -315,21 +315,21 @@ class JoystickController(object):
                     self.throttle = self.forward - (self.reverse * 1)
                 
                 else: 
-                    #this value is often reversed, with positive value when pulling down 
+                    # this value is often reversed, with positive value when pulling down 
                     self.throttle = (self.throttle_scale * axis_val * self.max_throttle)
 
-                print("throttle", self.throttle)
+                #print("throttle", self.throttle)
                 self.on_throttle_changes()
 
             if axis == self.panning_axis:
                 self.pan = axis_val
-                print("panning", self.pan)
+                #print("panning", self.pan)
 
             if axis == self.tilting_axis:
                 #this value is often reversed, with positive value when pulling down
                 self.tilt = (axis_val * self.max_tilt)
                 #self.tilt = axis_val
-                print("tilting", self.tilt)
+                #print("tilting", self.tilt)
                 
 
 
