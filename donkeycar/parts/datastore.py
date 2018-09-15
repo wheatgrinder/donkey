@@ -239,6 +239,7 @@ class Tub(object):
                 #print('wrote record:', json_data)
         except TypeError:
             print('troubles with record:', json_data)
+            raise
         except FileNotFoundError:
             raise
         except:

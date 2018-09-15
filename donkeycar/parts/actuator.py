@@ -50,6 +50,7 @@ class PWMSteering:
                                 self.left_pulse, self.right_pulse)
 
         self.controller.set_pulse(pulse)
+        #return angle
 
     def shutdown(self):
         self.run(0) #set steering straight
@@ -90,6 +91,7 @@ class PWMThrottle:
                                     self.min_pulse, self.zero_pulse)
 
         self.controller.set_pulse(pulse)
+        #return throttle
         
     def shutdown(self):
         self.run(0) #stop vehicle

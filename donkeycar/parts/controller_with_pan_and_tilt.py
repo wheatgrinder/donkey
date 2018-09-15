@@ -301,26 +301,48 @@ class JoystickController(object):
                 #print("angle", self.angle)
             
             if axis == 'rightTrig2':
-                self.forward = axis_val
-                print('right trigger:' + str(axis_val))
+                #self.forward = axis_val
+                # convert -1 to 1 range to 0 to 1.. 
+                # oldRange = oldMax - oldMin
+                # newRange = newMax - newMin
+                # newValue = ((oldValue - oldMin) * newRange / oldRange) + newMin
+                # ((axis_val --1)(1/2)+0)  simplify to ((axis_val+1)*.5)
+                self.forward = ((axis_val+1)*.5)  
+                #print('right trigger:' + str(self.forward))
+                if self.trigger_throttle:
+                    # use trigger throttle tech
+                    self.throttle = (self.forward - self.reverse) 
+                    #print(self.throttle)
             
             if axis == 'leftTrig2':
-                self.reverse = axis_val
-                print('left trigger:' + str(axis_val))
+                #self.reverse = axis_val
+                # convert -1 to 1 range to 0 to 1..  
+                # oldRange = oldMax - oldMin
+                # newRange = newMax - newMin
+                # newValue = ((oldValue - oldMin) * newRange / oldRange) + newMin
+                # ((axis_val --1)(1/2)+0)  simplify to ((axis_val+1)*.5)
+                self.reverse = ((axis_val+1)*.5)  
+                #print('left trigger:' + str(self.reverse))
+                if self.trigger_throttle:
+                    # use trigger throttle tech
+                    self.throttle =  (self.forward - self.reverse) 
+                    #print(self.throttle)
 
-
+                    
+          
             if axis == self.throttle_axis:
                 if self.trigger_throttle:
                     # use trigger throttle tech
-                    self.throttle = self.forward - (self.reverse * 1)
+                    #self.throttle = self.forward - self.reverse 
+                    print('trigger throttle:' + str(self.throttle))
                 
                 else: 
                     # this value is often reversed, with positive value when pulling down 
                     self.throttle = (self.throttle_scale * axis_val * self.max_throttle)
 
                 #print("throttle", self.throttle)
-                self.on_throttle_changes()
-
+                #self.on_throttle_changes()
+            
             if axis == self.panning_axis:
                 self.pan = axis_val
                 #print("panning", self.pan)
