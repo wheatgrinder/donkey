@@ -23,7 +23,9 @@ class rgb_led:
     def run(self):
         pass
 
-
+    def shutdown(self):
+        RGB_LED_set_color(self.pwm , self.led , (0,25,0))
+        
 class turn_signal():
     def __init__(self, left_led=None, right_led=None):
         self.left_led = left_led

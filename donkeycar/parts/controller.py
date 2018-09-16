@@ -203,18 +203,7 @@ class JoystickController(object):
                  steering_scale=1.0,
                  throttle_scale=-1.0,
                  dev_fn='/dev/input/js0',
-                 auto_record_on_throttle=True,
-                 btn_mode = 'trigger',
-                 btn_record_toggle = 'circle',
-                 btn_inc_max_throttle = 'triangle',
-                 btn_dec_max_throttle = 'cross',
-                 btn_inc_throttle_scale = 'base',
-                 btn_dec_throttle_scale = 'top2',
-                 btn_inc_steer_scale = 'base2',
-                 btn_dec_steer_scale = 'pinkie',
-                 btn_toggle_const_throttle = 'top',
-                 verbose = False
-                 ):
+                 auto_record_on_throttle=True):
 
         self.angle = 0.0
         self.throttle = 0.0
@@ -231,16 +220,6 @@ class JoystickController(object):
         self.auto_record_on_throttle = auto_record_on_throttle
         self.dev_fn = dev_fn
         self.js = None
-        self.btn_mode = btn_mode
-        self.btn_record_toggle = btn_record_toggle
-        self.btn_inc_max_throttle = btn_inc_max_throttle
-        self.btn_dec_max_throttle = btn_dec_max_throttle
-        self.btn_inc_throttle_scale = btn_inc_throttle_scale
-        self.btn_dec_throttle_scale = btn_dec_throttle_scale
-        self.btn_inc_steer_scale = btn_inc_steer_scale
-        self.btn_dec_steer_scale = btn_dec_steer_scale
-        self.btn_toggle_const_throttle = btn_toggle_const_throttle
-        self.verbose = verbose
 
         #We expect that the framework for parts will start a new
         #thread for our update fn. We used to do that and it caused
@@ -260,8 +239,6 @@ class JoystickController(object):
         try:
             self.js = Joystick(self.dev_fn)
             self.js.init()
-            if self.verbose:
-                self.js.show_map()
         except FileNotFoundError:
             print(self.dev_fn, "not found.")
             self.js = None
@@ -297,22 +274,16 @@ class JoystickController(object):
         while self.running:
             button, button_state, axis, axis_val = self.js.poll()
 
-            if self.verbose and button_state == 1:
-                print('button: ', button)
-
             if axis == self.steering_axis:
                 self.angle = self.steering_scale * axis_val
-                if self.verbose:
-                    print("angle", self.angle)
+                print("angle", self.angle)
 
             if axis == self.throttle_axis:
                 #this value is often reversed, with positive value when pulling down
                 self.throttle = (self.throttle_scale * axis_val * self.max_throttle)
+                print("throttle", self.throttle)
                 self.on_throttle_changes()
-                if self.verbose:
-                    print("throttle", self.throttle)
-            
-          
+
             if button == 'trigger' and button_state == 1:
                 """
                 switch modes from:

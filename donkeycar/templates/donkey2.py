@@ -17,7 +17,7 @@ from docopt import docopt
 
 import donkeycar as dk
 
-# import parts
+#import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
 from donkeycar.parts.keras import KerasCategorical
@@ -161,7 +161,6 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     print('tub_names', tub_names)
     if not tub_names:
         tub_names = os.path.join(cfg.DATA_PATH, '*')
-
     tubgroup = TubGroup(tub_names)
     train_gen, val_gen = tubgroup.get_train_val_gen(X_keys, y_keys,
                                                     train_record_transform=train_record_transform,

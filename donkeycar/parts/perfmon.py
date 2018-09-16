@@ -71,7 +71,7 @@ class throttled():
             self.throttled_status = os.popen('vcgencmd get_throttled').readline()
             self.throttled_status = str(self.throttled_status.rstrip())
             time.sleep(10)
-            #print(str(throttled_status.rstrip()))
+            print(str(throttled_status.rstrip()))
         
     def run_threaded(self):
         return self.throttled_status
