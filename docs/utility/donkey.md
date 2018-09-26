@@ -13,7 +13,7 @@ donkey createcar --path <dir> [--overwrite] [--template <donkey2>]
 
 * This command may be run from any dir
 * Run on the host computer or the robot
-* It uses the `--path` as the destination dir to create. If `.py` files exist there, it will not overwrite them, unless the optional `--overwrite` is used. 
+* It uses the `--path` as the destination dir to create. If `.py` files exist there, it will not overwrite them, unless the optional `--overwrite` is used.
 * The optional `--template` will specify the template file to start from. For a list of templates, see the `donkeycar/templates` dir
 
 ## Find Car
@@ -81,8 +81,6 @@ donkey makemovie <tub_path> [--out=<tub_movie.mp4>] [--config=<config.py>]
 
 This command allows you to see how many records are contained in any/all tubs. It will also open each record and ensure that the data is readable and intact. If not, it will allow you to remove corrupt records.
 
-> Note: This should be moved from manage.py to donkey command
-
 Usage:
 ```bash
 donkey tubcheck <tub_path> [--fix]
@@ -99,8 +97,6 @@ donkey tubcheck <tub_path> [--fix]
 This command will show a pop-up window showing the histogram of record values in a given tub.
 
 
-> Note: This should be moved from manage.py to donkey command
-
 Usage:
 ```bash
 donkey tubhist <tub_path> --rec=<"user/angle">
@@ -110,18 +106,17 @@ donkey tubhist <tub_path> --rec=<"user/angle">
 
 * When the `--tub` is omitted, it will check all tubs in the default data dir
 
+
 ## Plot Predictions
 
 This command allows you plot steering and throttle against predictions coming from a trained model.
-
-> Note: This should be moved from manage.py to donkey command
 
 Usage:
 ```bash
 donkey tubplot <tub_path> [--model=<model_path>]
 ```
 
-* This command may be run from `~/d2` dir
+* This command may be run from `~/mycar` dir
 * Run on the host computer
 * Will show a pop-up window showing the plot of steering values in a given tub compared to NN predictions from the trained model
 * When the `--tub` is omitted, it will check all tubs in the default data dir
@@ -136,7 +131,7 @@ Usage:
 donkey sim --model=<model_path> [--type=<linear|categorical>] [--top_speed=<speed>] [--config=<config.py>]
 ```
 
-* This command may be run from `~/d2` dir
+* This command may be run from `~/mycar` dir
 * Run on the host computer
 * Uses the model to make predictions based on images and telemetry from the simulator
 * `--type` can specify whether the model needs angle output to be treated as categorical
