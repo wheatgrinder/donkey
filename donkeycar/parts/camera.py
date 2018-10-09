@@ -8,16 +8,20 @@ class BaseCamera:
 
     def run_threaded(self):
         return self.frame
-
+        
 class PiCamera(BaseCamera):
-    def __init__(self, resolution=(120, 160), framerate=20):
+    def __init__(self, resolution=(120, 160), framerate=20,rotation=0,stabilization=False):
         from picamera.array import PiRGBArray
         from picamera import PiCamera
         resolution = (resolution[1], resolution[0])
         # initialize the camera and stream
         self.camera = PiCamera() #PiCamera gets resolution (height, width)
+        
         self.camera.resolution = resolution
+        print("cam res:" + str(self.camera.resolution))
         self.camera.framerate = framerate
+        self.camera.rotation = rotation
+        self.camera.video_stabilization=stabilization
         self.rawCapture = PiRGBArray(self.camera, size=resolution)
         self.stream = self.camera.capture_continuous(self.rawCapture,
             format="rgb", use_video_port=True)
@@ -28,7 +32,7 @@ class PiCamera(BaseCamera):
         self.on = True
 
         print('PiCamera loaded.. .warming camera')
-        time.sleep(2)
+        time.sleep(4)
 
 
     def run(self):

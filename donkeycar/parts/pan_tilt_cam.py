@@ -53,16 +53,17 @@ class PWMPanning:
 
 
     def run(self, pan):
-        if pan > 0:
-            pulse = dk.utils.map_range(pan,
-                                    0, self.LEFT_PAN, 
-                                    self.zero_pulse, self.left_pulse)
-        else:
-            pulse = dk.utils.map_range(pan,
-                                    self.RIGHT_PAN, 0, 
-                                    self.right_pulse, self.zero_pulse)
+        if pan:
+            if float(pan) > 0:
+                pulse = dk.util.data.map_range(float(pan),
+                                        0, self.LEFT_PAN, 
+                                        self.zero_pulse, self.left_pulse)
+            else:
+                pulse = dk.util.data.map_range(float(pan),
+                                        self.RIGHT_PAN, 0, 
+                                        self.right_pulse, self.zero_pulse)
 
-        self.controller.set_pulse(pulse)
+            self.controller.set_pulse(pulse)
         
     def shutdown(self):
         self.run(0) #stop vehicle
@@ -93,16 +94,17 @@ class PWMTilting:
 
 
     def run(self, tilt):
-        if tilt > 0:
-            pulse = dk.utils.map_range(tilt,
-                                    0, self.MAX_TILT, 
-                                    self.zero_pulse, self.max_pulse)
-        else:
-            pulse = dk.utils.map_range(tilt,
-                                    self.MIN_TILT, 0, 
-                                    self.min_pulse, self.zero_pulse)
+        if tilt:
+            if float(tilt) > 0:
+                pulse = dk.util.data.map_range(float(tilt),
+                                        0, self.MAX_TILT, 
+                                        self.zero_pulse, self.max_pulse)
+            else:
+                pulse = dk.util.data.map_range(float(tilt),
+                                        self.MIN_TILT, 0, 
+                                        self.min_pulse, self.zero_pulse)
 
-        self.controller.set_pulse(pulse)
+            self.controller.set_pulse(pulse)
         
     def shutdown(self):
         self.run(0) #stop vehicle
@@ -135,13 +137,14 @@ class PWMWagging:
         time.sleep(1)
 
 
-    def run(self, tilt):
-        if wag > 0:
-            pulse = dk.utils.map_range(wag,
+    def run(self, wag):
+        print("wag:", wag)
+        if float(wag) > 0:
+            pulse = dk.util.data.map_range(float(wag),
                                     0, self.MAX_WAG, 
                                     self.zero_pulse, self.max_pulse)
         else:
-            pulse = dk.utils.map_range(wag,
+            pulse = dk.util.data.map_range(float(wag),
                                     self.MIN_WAG, 0, 
                                     self.min_pulse, self.zero_pulse)
 

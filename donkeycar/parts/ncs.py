@@ -145,10 +145,10 @@ class googlenet():
 
                         #img = cv2.imread(EXAMPLES_BASE_DIR+'data/images/nps_electric_guitar.png')
                         dim = (self.NETWORK_IMAGE_WIDTH, self.NETWORK_IMAGE_HEIGHT)
-                        if self.debug:
-                                img = cv2.imread(self.BASE_DIR+'debug.jpg')
-                        else:
-                                img = self.out_img_arr 
+                        #if self.debug:
+                        #        img = cv2.imread(self.BASE_DIR+'debug.jpg')
+                        #else:
+                        img = self.out_img_arr 
                         
                         
                         img=cv2.resize(img,dim)
@@ -317,10 +317,10 @@ class inception():
                         #img = cv2.imread(EXAMPLES_BASE_DIR+'data/images/nps_electric_guitar.png')
                         dim = (self.NETWORK_IMAGE_WIDTH, self.NETWORK_IMAGE_HEIGHT)
                         #img = self.out_img_arr
-                        if self.debug:
-                                img = self.BASE_DIR+'debug.jpg'
-                        else:
-                                img = self.img_arr
+                        #if self.debug:
+                        #        img = self.BASE_DIR+'debug.jpg'
+                        #else:
+                        img = self.img_arr
                         img=cv2.resize(img,dim)
                         img = img.astype(np.float32)
                         img[:,:,0] = (img[:,:,0] - self.ilsvrc_mean[0])
@@ -427,6 +427,11 @@ class tinyyolo():
                 # only report ojbects with probabilities greater than this
                 self.probability_threshold = probability_threshold
 
+                self.first_obj_x = 0
+                self.first_obj_y = 0
+                self.center_screen_x = 0
+                self.center_screen_y = 0
+                #self.out_filtered_objs =[]
                 # ***************************************************************
                 # get labels
                 # ***************************************************************
@@ -490,10 +495,6 @@ class tinyyolo():
                 self.out_img_arr = np.zeros((1,1,3), np.uint8)
                 #self.hldCnt = 0;        
 
-
-        def run_threaded(self,img_arr):
-                self.img_arr = img_arr
-                return self.out_img_arr,self.out_filtered_objs
 
         def filter_objects(self,inference_result, input_image_width, input_image_height):
                 
@@ -738,11 +739,11 @@ class tinyyolo():
                         
                         # Assume running in examples/caffe/TinyYolo and graph file is in current directory.
                         #input_image_file= '/home/pi/cars/d2/models/ncs_data/images/dog.jpg'
-                        if self.debug:
-                                input_image = cv2.imread(self.BASE_DIR+'debug.jpg')
-                        else:
+                        #if self.debug:
+                        #        input_image = cv2.imread(self.BASE_DIR+'debug.jpg')
+                        #else:
                                 #input_image = self.increase_brightness(self.img_arr,50)
-                                input_image = self.img_arr
+                        input_image = self.img_arr
                         
                         
 
@@ -760,6 +761,7 @@ class tinyyolo():
 
                         #input_image = cv2.imread(input_image_file)
                         #display_image = input_image
+                        
                         input_image = cv2.resize(input_image, (self.NETWORK_IMAGE_WIDTH, self.NETWORK_IMAGE_HEIGHT), cv2.INTER_LINEAR)
                         display_image = input_image
                         input_image = input_image.astype(np.float32)
@@ -778,12 +780,44 @@ class tinyyolo():
                         else:
                                 self.out_img_arr = self.img_arr
 
+                        
                         self.out_filtered_objs = filtered_objs
+
                         #return self.display_objects_in_gui(self.img_arr, filtered_objs)
                         #self.out_img_arr = display_image
+                        
+                        
+                        if self.out_filtered_objs:
+                                #print(self.out_filtered_objs[0])
+                                #center=(int((x+(x+w))/2), int(((y+h)+y)/2))
+                                #['person', 209.45312, 229.90625, 310.50378, 406.15082, 0.37283849716186523]
+                                #p,x,y,h,w,c = self.out_filtered_objs[0]
+                                #self.first_obj_center=(int((x+(x+w))/2), int(((y+h)+y)/2))
+                                self.first_obj_x = int(self.out_filtered_objs[0][1])
+                                self.first_obj_y = int(self.out_filtered_objs[0][2])
+                                
+                                
+                                #img_h, img_w = self.img_arr.shape[:2]
+                                self.center_of_img = (int(self.NETWORK_IMAGE_WIDTH/2), int(self.NETWORK_IMAGE_HEIGHT/2))
+                                
+                                if self.draw_on_img:
+                                        cv2.circle(self.out_img_arr, (self.out_filtered_objs[0][1],self.out_filtered_objs[0][2]), 5, (255,0,0), 2)
+                                        cv2.circle(self.out_img_arr, (self.center_of_img), 30, (0,255,0), 2)
+
+                                if self.debug:
+                                        print(self.out_filtered_objs[0])
+
+                                        
+                                                                                         
+                                
 
                         #return 
-                        
+        def run_threaded(self,img_arr):
+                self.img_arr = img_arr
+                #return self.out_img_arr,self.out_filtered_objs,self.first_obj_x,self.first_obj_y,self.center_screen_x,self.center_screen_y
+                return self.out_img_arr,self.out_filtered_objs
+
+                
         def increase_brightness(self,img, value=30):
                 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
                 h, s, v = cv2.split(hsv)
@@ -857,3 +891,163 @@ class tinyyolo():
                 #self.stream.close()
                 #self.rawCapture.close()
                 #self.camera.close()
+
+
+class LookAt:
+    """ inputs screen coordinates of the detected object (target) and (current pan, current tilt)  
+    and returns new_pan and new_tilt value twards the center of the detected ojbect target with some slop
+    """
+    def __init__(self, screen_center=(224,224), look_for='person',tilt_offset=0.5, probability_threshold = 0.50, debug=False):
+        self.target_center =(0,0)
+        self.screen_center = screen_center
+        self.debug = debug
+        
+        self.look_for = look_for
+
+        self.diff = 0
+        self.change_amt = 0
+        self.tilt_offset = tilt_offset 
+        self.no_lock_cnt = 0
+        self.lock_cnt = 0
+        self.sweep_dir='left'
+        self.irq='LOOKAT:STANDBY'  #pass msgs back to caller in irq output
+        self.probability_threshold = probability_threshold
+        
+  
+    def look_around(self,speed):
+        #semi randomly look around if not finding any 
+        #lets not start looking right away.. give a few seconds
+        
+
+
+        # no target center so move back towrds forward and up a bit.. ()
+        #self.pan =  2 * np.random.rand() - 1
+        #self.tilt = (2 * np.random.rand() - 1) * 0.02 
+        #time.sleep(0.5)
+        self.speed = speed
+        
+       
+        #if self.pan >= -1 and self.pan <= 1: 
+        if self.sweep_dir=='left' and self.pan_in <= -1:
+                self.sweep_dir='right'
+        if self.sweep_dir=='right' and self.pan_in >= 1:
+                self.sweep_dir = 'left'
+
+        if self.sweep_dir=='left':
+                self.pan = self.pan - self.speed
+        else:
+                self.pan = self.pan + self.speed
+
+        if self.tilt > -1 and self.tilt < 1: 
+                if self.tilt_in > self.tilt_offset: #tilt offset keeps it looking up a bit as its a pet on the ground
+                        self.tilt = self.tilt - self.speed
+                else:
+                        self.tilt = self.tilt + self.speed
+        
+        #inject some randmoness out the pan \ tilt values that we output (looking around.. )
+        #self.pan = self.pan * (np.random.uniform() *  ) 
+
+  
+    def run(self, obj_list,  pan_in, tilt_in):
+
+        #need some bounds around lock cnts or might overflow.. 
+        if self.lock_cnt > 1000:
+                self.lock_cnt = 1000
+        if self.no_lock_cnt > 1000:
+                self.no_lock_cnt = 1000
+
+        #self.target_center=target_center
+        #(float(target_center[0]),float(target_center[1]))
+        self.obj_list = obj_list
+        
+        
+        self.pan_in = float(pan_in)
+        self.tilt_in = float(tilt_in)
+        self.pan = float(pan_in)
+        self.tilt = float(tilt_in)
+        
+        """
+        network_classifications = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car",
+        "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike",
+        "person", "pottedplant", "sheep", "sofa", "train","tvmonitor"]
+        
+        iterate over object in and find the first instance of the "look_for" as
+        val = default_val
+        for x in some_list:
+            if match(x):
+            val = x
+            break
+
+            #['person', 209.45312, 229.90625, 310.50378, 406.15082, 0.37283849716186523]
+        """
+        
+        self.target_center=None
+        for obj in self.obj_list:
+                #print(obj)
+                #print(obj[0])
+                        if self.look_for in obj:
+                                if obj[5] >= self.probability_threshold:
+                                        self.target_center=(obj[1],obj[2])
+                                        found_look_for = True
+                                        break
+        
+        
+
+
+
+        
+        if self.target_center:
+            self.no_lock_cnt = 0
+            self.lock_cnt = self.lock_cnt + 1
+            
+            if self.lock_cnt > 60:
+                self.irq = "LOOKAT:LOCK"
+            
+                sc=np.array(self.screen_center)
+                tc=np.array(self.target_center)
+
+                td = tc-sc
+                self.diff = np.sqrt(td.dot(td))
+                #def scale_number(unscaled, to_min, to_max, from_min, from_max):
+                #self.diff = scale_number(self.diff,0.002,0.1,0,200)
+                #(to_max-to_min)*(unscaled-from_min)/(from_max-from_min)+to_min
+                
+                self.change_amt = self.diff * 0.00012
+                
+                #self.change_amt = (0.1-0.001)*(self.diff-0)/(50-0)+0.001
+                #def map_range(x, X_min, X_max, Y_min, Y_max):
+                #self.change_amt = dk.util.data.map_range(self.diff,0,150,0.001,0.1)
+                #self.change_amt = change_amt
+
+                #if   self.diff > self.slop: 
+                
+                if self.pan > -1 and self.pan < 1:  
+                        
+                        if self.target_center[0] > self.screen_center[0]:
+                                self.pan = self.pan + self.change_amt
+                        else:
+                                self.pan = self.pan - self.change_amt
+
+                if self.tilt > -1 and self.tilt < 1: 
+                        if self.target_center[1] < self.screen_center[1]:  
+                                self.tilt = self.tilt + self.change_amt
+                        else:
+                                self.tilt = self.tilt - self.change_amt
+                
+        else:
+                #if no target, look around for one 
+                self.no_lock_cnt += 1
+                
+                if self.no_lock_cnt > 60:
+                        self.irq = "LOOKAT:NO_LOCK"
+                        self.look_around(0.01)
+                 
+
+        if self.debug:
+            print('sweep_dir:' , self.sweep_dir , 'diff:', self.diff, " change_amt: ", self.change_amt, " screen center:" , self.screen_center," target center:" , self.target_center, 
+            " pan_in:", self.pan_in, " tilt_in:", self.tilt_in, 
+            " pan:", self.pan, " tilt:", self.tilt, ' irq:', self.irq)
+
+        return self.pan, self.tilt, self.irq
+
+   

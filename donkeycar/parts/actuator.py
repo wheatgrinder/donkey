@@ -48,8 +48,7 @@ class PWMSteering:
                                         self.left_pulse, self.right_pulse)
 
         self.controller.set_pulse(pulse)
-        #return angle
-
+       
     def shutdown(self):
         self.run(0) #set steering straight
 
@@ -79,16 +78,17 @@ class PWMThrottle:
 
 
     def run(self, throttle):
-        if throttle > 0:
-            pulse = dk.util.data.map_range(throttle,
+        if float(throttle) > 0:
+            pulse = dk.util.data.map_range(float(throttle),
                                                     0, self.MAX_THROTTLE,
                                                     self.zero_pulse, self.max_pulse)
         else:
-            pulse = dk.util.data.map_range(throttle,
+            pulse = dk.util.data.map_range(float(throttle),
                                                     self.MIN_THROTTLE, 0,
                                                     self.min_pulse, self.zero_pulse)
 
         self.controller.set_pulse(pulse)
+        
 
     def shutdown(self):
         self.run(0) #stop vehicle

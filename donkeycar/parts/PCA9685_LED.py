@@ -57,7 +57,9 @@ class status_indicator():
         if recording:
             self.status_led.set_color((255,0,0))
         else:
-            if user_mode == 'user':
+            if user_mode == 'face':
+                self.status_led.set_color((0,50,50))
+            elif user_mode == 'user':
                 self.status_led.set_color((0,50,0))
             elif user_mode == 'local':
                 self.status_led.set_color((0,0,255))
